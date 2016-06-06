@@ -1,0 +1,28 @@
+{
+  "name": "node-thulac",
+  "version": "1.0.0",
+  "description": "node binding for thulac",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test.js",
+    "install": "node-gyp rebuild"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GeoHey-Team/node-thulac.git"
+  },
+  "keywords": [
+    "thulac",
+    "segmentation"
+  ],
+  "author": "Atlas Xu <xux@geohey.com>",
+  "license": "ISC",
+  "gypfile": true,
+  "bugs": {
+    "url": "https://github.com/GeoHey-Team/node-thulac/issues"
+  },
+  "homepage": "https://github.com/GeoHey-Team/node-thulac#readme",
+  "dependencies": {
+    "nan": "^2.3.5"
+  }
+}
