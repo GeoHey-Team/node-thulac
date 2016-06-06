@@ -29,15 +29,6 @@
                 'wrapper.cpp',
             ],
             'cflags_cc': ['-std=c++0x'],
-            "xcode_settings":
-            {
-                'OTHER_CPLUSPLUSFLAGS': ['-std=c++0x', '-stdlib=libc++', ],
-                'OTHER_LDFLAGS':
-                [
-                    '-stdlib=libc++',
-                ],
-            },
-
             'include_dirs':
             [
                 './src/',
