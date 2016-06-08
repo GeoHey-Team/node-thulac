@@ -3,8 +3,13 @@ var thulac = require('./index.js');
 segmentor = new thulac.segmentor.Segmentor();
 
 console.log('loading model ...');
-segmentor.loadModel('./models/model_c');
-//segmentor.loadModel('./models/cws');
+segmentor.loadModel({
+    t2s: false,
+    seg_only: false,
+    filter: true,
+    delimeter: '#',
+    model_dir: './models/'
+});
 
 console.log('do some predict ...');
 //console.log(segmentor.predict('工信处女干事每月经过下属科室都要亲口交代24口交换机等技术性器件的安装工作'));
