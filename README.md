@@ -15,7 +15,7 @@ npm install node-thulac
 ```
 var thulac = require('node-thulac');
 
-var segmentor = new thulac.segmentor.Segmentor();
+var segmentor = new thulac.Segmentor();
 
 segmentor.loadModel({
     t2s: false,
