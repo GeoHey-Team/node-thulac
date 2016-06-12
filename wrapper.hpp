@@ -46,22 +46,22 @@ private:
     TaggingDecoder* cws_decoder_;
     permm::Model* tagging_model_;
     permm::Model* cws_model_;
-    
+
     DAT* tagging_dat_;
     DAT* cws_dat_;
-    
+
     char** tagging_label_info_;
     int** tagging_pocs_to_tags_;
     char** cws_label_info_;
     int** cws_pocs_to_tags_;
-    
-    
+
+
     thulac::hypergraph::LatticeFeature* lf_;
     DAT* sogout_;
     hypergraph::Decoder<int, LatticeEdge> decoder_;
-    
+
     Preprocesser* preprocesser_;
-    
+
     Postprocesser* ns_dict_;
     Postprocesser* idiom_dict_;
     Postprocesser* nz_dict_;
@@ -71,16 +71,16 @@ private:
     Postprocesser* verb_dict_;
     Postprocesser* vm_dict_;
     Postprocesser* y_dict_;
-    
+
     Postprocesser* user_dict_;
-    
+
     Punctuation* punctuation_;
-    
+
     NegWord* negword_;
     TimeWord* timeword_;
     VerbWord* verbword_;
     Filter* filter_;
-    
+
     Character separator_;
     bool useT2S_;
     bool seg_only_;
@@ -95,14 +95,14 @@ Nan::Persistent<v8::FunctionTemplate> Segmentor::constructor;
 
 void Segmentor::Initialize(v8::Local<v8::Object> target) {
     Nan::HandleScope scope;
-    
+
     v8::Local<v8::FunctionTemplate> lcons = Nan::New<v8::FunctionTemplate>(Segmentor::New);
     lcons->InstanceTemplate()->SetInternalFieldCount(1);
     lcons->SetClassName(Nan::New("Segmentor").ToLocalChecked());
-    
+
     Nan::SetPrototypeMethod(lcons, "loadModel", load_model);
     Nan::SetPrototypeMethod(lcons, "predict", predict);
-    
+
     target->Set(Nan::New("Segmentor").ToLocalChecked(),lcons->GetFunction());
     constructor.Reset(lcons);
 }
@@ -110,9 +110,9 @@ void Segmentor::Initialize(v8::Local<v8::Object> target) {
 Segmentor::Segmentor() : Nan::ObjectWrap() {
     lf_ = NULL;
     sogout_ = NULL;
-    
+
     preprocesser_ = NULL;
-    
+
     ns_dict_ = NULL;
     idiom_dict_ = NULL;
     nz_dict_ = NULL;
@@ -122,11 +122,11 @@ Segmentor::Segmentor() : Nan::ObjectWrap() {
     verb_dict_ = NULL;
     vm_dict_ = NULL;
     y_dict_ = NULL;
-    
+
     user_dict_ = NULL;
-    
+
     punctuation_ = NULL;
-    
+
     negword_ = NULL;
     timeword_ = NULL;
     verbword_ = NULL;
@@ -194,20 +194,20 @@ Segmentor::~Segmentor() {
         delete punctuation_;
         punctuation_ = NULL;
     }
-    
+
     if(useFilter_ && filter_ != NULL){
         delete filter_;
         filter_ = NULL;
     }
-    
+
     if (lf_ != NULL) {
         delete lf_;
     }
-    
+
     if (cws_decoder_ != NULL) {
         delete cws_decoder_;
     }
-    
+
     if(cws_model_ != NULL){
         for(int i = 0; i < cws_model_->l_size; i ++){
             if(cws_label_info_) {
@@ -216,26 +216,26 @@ Segmentor::~Segmentor() {
         }
         delete[] cws_label_info_;
     }
-    
+
     if (cws_pocs_to_tags_ != NULL){
         for(int i = 1; i < 16; i ++){
             delete[] cws_pocs_to_tags_[i];
         }
         delete[] cws_pocs_to_tags_;
     }
-    
+
     if (cws_dat_ != NULL) {
         delete cws_dat_;
     }
-    
+
     if (cws_model_ != NULL) {
         delete cws_model_;
     }
-    
+
     if (tagging_decoder_ != NULL) {
         delete tagging_decoder_;
     }
-    
+
     if (tagging_model_ != NULL){
         for(int i = 0; i < tagging_model_->l_size; i ++){
             if(tagging_label_info_) {
@@ -244,18 +244,18 @@ Segmentor::~Segmentor() {
         }
         delete[] tagging_label_info_;
     }
-    
+
     if (tagging_pocs_to_tags_ != NULL){
         for(int i = 1; i < 16; i ++){
             delete[] tagging_pocs_to_tags_[i];
         }
         delete[] tagging_pocs_to_tags_;
     }
-    
+
     if (tagging_dat_ != NULL) {
         delete tagging_dat_;
     }
-    
+
     if (tagging_model_ != NULL) {
         delete tagging_model_;
     }
@@ -267,7 +267,7 @@ NAN_METHOD(Segmentor::New) {
         Nan::ThrowError("Cannot call constructor as function, you need to use 'new' keyword");
         return;
     }
-    
+
     // accept a reference or v8:External?
     if (info[0]->IsExternal()) {
         v8::Local<v8::External> ext = info[0].As<v8::External>();
@@ -277,7 +277,7 @@ NAN_METHOD(Segmentor::New) {
         info.GetReturnValue().Set(info.This());
         return;
     }
-    
+
     Segmentor* m = new Segmentor();
     m->Wrap(info.This());
     info.GetReturnValue().Set(info.This());
@@ -289,9 +289,9 @@ NAN_METHOD(Segmentor::load_model) {
         Nan::ThrowTypeError("first argument must be a object!");
         return;
     }
-    
+
     v8::Local<v8::Object> options = info[0].As<v8::Object>();
-    
+
     // this parameter specifies to convert traditional chinese to simplified chinese
     bool traditional_chinese_to_simplified_chinese = false;
     v8::Local<v8::String> t2s_param = Nan::New("t2s").ToLocalChecked();
@@ -303,7 +303,7 @@ NAN_METHOD(Segmentor::load_model) {
         }
         traditional_chinese_to_simplified_chinese = param_val->BooleanValue();
     }
-    
+
     // this parameter specifies to segment text without Part-of-Speech
     bool segment_text_without_part_of_speech = false;
     v8::Local<v8::String> seg_only_param = Nan::New("seg_only").ToLocalChecked();
@@ -315,7 +315,7 @@ NAN_METHOD(Segmentor::load_model) {
         }
         segment_text_without_part_of_speech = param_val->BooleanValue();
     }
-    
+
     // this parameter specifies to use filter to remove the words that have no much sense, like \"could\"
     bool usefilter = false;
     v8::Local<v8::String> filter_param = Nan::New("filter").ToLocalChecked();
@@ -327,7 +327,7 @@ NAN_METHOD(Segmentor::load_model) {
         }
         usefilter = param_val->BooleanValue();
     }
-    
+
     // this parameter specifies tagsign delimeter between words and POS tags. Default is _"
     Character delimeter = '_';
     v8::Local<v8::String> delimeter_param = Nan::New("delimeter").ToLocalChecked();
@@ -339,7 +339,7 @@ NAN_METHOD(Segmentor::load_model) {
         }
         delimeter = (*v8::String::Utf8Value(param_val))[0];
     }
-    
+
     // Use the words in the userword.txt as a dictionary and the words will labled as \"uw\""
     std::string userword = "";
     v8::Local<v8::String> userword_param = Nan::New("userword").ToLocalChecked();
@@ -347,7 +347,7 @@ NAN_METHOD(Segmentor::load_model) {
         v8::Local<v8::Value> param_val = options->Get(userword_param);
         userword = *v8::String::Utf8Value(param_val);
     }
-    
+
     // this parameter specifies dir is the directory that containts all the model file. Default is \"models/\"
     std::string model_dir = "";
     v8::Local<v8::String> model_dir_param = Nan::New("model_dir").ToLocalChecked();
@@ -357,7 +357,7 @@ NAN_METHOD(Segmentor::load_model) {
     } else {
         return;
     }
-    
+
     /*
     std::string input_file = "";
     v8::Local<v8::String> input_param = Nan::New("input").ToLocalChecked();
@@ -376,19 +376,19 @@ NAN_METHOD(Segmentor::load_model) {
     std::cout << "user word: " << userword << std::endl;
     std::cout << "model dir: " << model_dir << std::endl;
     //std::cout << "input: " << input_file << std::endl << std::endl;
-    
+
     Segmentor* segmentor = Nan::ObjectWrap::Unwrap<Segmentor>(info.Holder());
-    
+
     // begin process
     segmentor->separator_ = delimeter;
-    
+
     segmentor->useT2S_ = traditional_chinese_to_simplified_chinese;
     segmentor->seg_only_ = segment_text_without_part_of_speech;
     segmentor->useFilter_ = usefilter;
     segmentor->use_second_ = false;
-    
+
     std::string prefix = model_dir;
-    
+
     std::cout << "setting up cws decoder ...\n";
     segmentor->cws_decoder_ = new TaggingDecoder();
     segmentor->cws_model_ = new permm::Model((prefix + "cws_model.bin").c_str());
@@ -398,13 +398,13 @@ NAN_METHOD(Segmentor::load_model) {
     get_label_info((prefix + "cws_label.txt").c_str(), segmentor->cws_label_info_, segmentor->cws_pocs_to_tags_);
     segmentor->cws_decoder_->init(segmentor->cws_model_, segmentor->cws_dat_, segmentor->cws_label_info_, segmentor->cws_pocs_to_tags_);
     segmentor->cws_decoder_->set_label_trans();
-    
+
     if (segmentor->seg_only_) {
         segmentor->cws_decoder_->threshold = 0;
     } else {
         segmentor->cws_decoder_->threshold = 15000;
     }
-    
+
     std::cout << "setting up tagging decoder ...\n";
     if (!segmentor->seg_only_) {
         segmentor->tagging_decoder_ = new TaggingDecoder();
@@ -414,22 +414,22 @@ NAN_METHOD(Segmentor::load_model) {
         } else {
             segmentor->tagging_decoder_->threshold = 0;
         }
-        
+
         segmentor->tagging_model_ = new permm::Model((prefix + "model_c_model.bin").c_str());
         segmentor->tagging_dat_ = new DAT((prefix + "model_c_dat.bin").c_str());
         segmentor->tagging_label_info_ = new char*[segmentor->tagging_model_->l_size];
         segmentor->tagging_pocs_to_tags_ = new int*[16];
-        
+
         get_label_info((prefix + "model_c_label.txt").c_str(), segmentor->tagging_label_info_, segmentor->tagging_pocs_to_tags_);
         segmentor->tagging_decoder_->init(segmentor->tagging_model_, segmentor->tagging_dat_, segmentor->tagging_label_info_, segmentor->tagging_pocs_to_tags_);
         segmentor->tagging_decoder_->set_label_trans();
     }
-    
+
     std::cout << "setting up dictionaries\n";
     segmentor->lf_ = new thulac::hypergraph::LatticeFeature();
     segmentor->sogout_ = new DAT((prefix + "sgT.dat").c_str());
     segmentor->lf_->node_features.push_back(new thulac::hypergraph::SogouTFeature(segmentor->sogout_));
-    
+
     std::vector<std::string> n_gram_model;
     std::vector<std::string> dictionaries;
     dictionaries.push_back(prefix + "sgW.dat");
@@ -438,13 +438,13 @@ NAN_METHOD(Segmentor::load_model) {
     }
     segmentor->lf_->filename= prefix + "model_w";
     segmentor->lf_->load();
-    
+
     segmentor->decoder_.features.push_back(segmentor->lf_);
-    
+
     std::cout << "setup preprocesser ...\n";
     segmentor->preprocesser_ = new Preprocesser();
     segmentor->preprocesser_->setT2SMap((prefix + "t2s.dat").c_str());
-    
+
     segmentor->ns_dict_ = new Postprocesser((prefix + "ns.dat").c_str(), "ns", false);
     segmentor->idiom_dict_ = new Postprocesser((prefix + "idiom.dat").c_str(), "i", false);
     segmentor->nz_dict_ = new Postprocesser((prefix + "nz.dat").c_str(), "nz", false);
@@ -454,24 +454,24 @@ NAN_METHOD(Segmentor::load_model) {
     segmentor->verb_dict_ = new Postprocesser((prefix + "verb.dat").c_str(), "v", false);
     segmentor->vm_dict_ = new Postprocesser((prefix + "vm.dat").c_str(), "vm", false);
     segmentor->y_dict_ = new Postprocesser((prefix + "y.dat").c_str(), "y", false);
-    
+
     if (userword != ""){
         segmentor->user_dict_ = new Postprocesser(userword.c_str(), "uw", true);
     }
 
     segmentor->punctuation_ = new Punctuation((prefix + "singlepun.dat").c_str());
-    
+
     segmentor->negword_ = new NegWord((prefix + "neg.dat").c_str());
     segmentor->timeword_ = new TimeWord();
     segmentor->verbword_ = new VerbWord((prefix + "vM.dat").c_str(), (prefix + "vD.dat").c_str());
-    
+
     segmentor->filter_ = NULL;
     if (segmentor->useFilter_){
         segmentor->filter_ = new Filter((prefix + "xu.dat").c_str(), (prefix + "time.dat").c_str());
     }
-    
+
     std::cout << "Done loading\n";
-    
+
     info.GetReturnValue().Set(Nan::New(true));
 }
 
@@ -481,10 +481,10 @@ NAN_METHOD(Segmentor::predict) {
         return;
     }
     Chinese_Charset_Conv conv;
-    
+
     Segmentor* segmentor = Nan::ObjectWrap::Unwrap<Segmentor>(info.Holder());
     std::string ori = *v8::String::Utf8Value(info[0]->ToString());
-    
+
     POCGraph poc_cands;
     POCGraph new_poc_cands;
     thulac::RawSentence oriRaw;
@@ -492,21 +492,21 @@ NAN_METHOD(Segmentor::predict) {
     thulac::RawSentence tRaw;
     thulac::SegmentedSentence segged;
     thulac::TaggedSentence tagged;
-    
+
     const int BYTES_LEN = 10000;
     char* input = new char[BYTES_LEN];
     char* output = new char[BYTES_LEN];
-    
+
     std::string result = "";
-    
+
     int codetype = -1;
     std::ostringstream ost;
     bool containtsT = false;
-    
+
     strcpy(input, ori.c_str());
     size_t in_left = ori.length();
     size_t out_left = BYTES_LEN;
-    
+
     // decide codetype
     codetype = conv.conv(input, in_left, output, out_left);
     if (codetype >= 0) {
@@ -517,7 +517,7 @@ NAN_METHOD(Segmentor::predict) {
         // return ...
         return;
     }
-    
+
     // std::cout << "code type: " << codetype << std::endl;
     // get raw
     if (codetype == 0) {
@@ -528,7 +528,7 @@ NAN_METHOD(Segmentor::predict) {
         int outlen = BYTES_LEN - out_left;
         thulac::get_raw(oriRaw, output, outlen);
     }
-    
+
     // process tradition chinese
     if (segmentor->preprocesser_->containsT(oriRaw)) {
         // std::cout << "process traditional chinese\n";
@@ -538,7 +538,7 @@ NAN_METHOD(Segmentor::predict) {
     } else {
         segmentor->preprocesser_->clean(oriRaw, raw, poc_cands);
     }
-    
+
     // segmentation
     if(raw.size()) {
         // std::cout << "raw size > 0\n";
@@ -560,7 +560,7 @@ NAN_METHOD(Segmentor::predict) {
             if (segmentor->useFilter_){
                 segmentor->filter_->adjust(segged);
             }
-            
+
             if (codetype == 0) {
                 // std::cout << "codetype == 0...\n";
                 for(size_t j = 0; j < segged.size(); j++){
@@ -578,14 +578,14 @@ NAN_METHOD(Segmentor::predict) {
                     }
                     ost << segged[j];
                 }
-                
+
                 std::string str = ost.str();
                 strcpy(input, str.c_str());
                 size_t in_left = str.size();
                 size_t out_left = BYTES_LEN;
                 codetype = conv.invert_conv(input, in_left, output, out_left, codetype);
                 //int outlen = BYTES_LEN - out_left;
-               
+
                 // ost.str("");
                 result = ost.str();
             }
@@ -602,7 +602,7 @@ NAN_METHOD(Segmentor::predict) {
             } else {
                 segmentor->tagging_decoder_->segment(raw, new_poc_cands, tagged);
             }
-            
+
             segmentor->ns_dict_->adjust(tagged);
             segmentor->idiom_dict_->adjust(tagged);
             segmentor->nz_dict_->adjust(tagged);
@@ -612,7 +612,7 @@ NAN_METHOD(Segmentor::predict) {
             segmentor->verb_dict_->adjust(tagged);
             segmentor->vm_dict_->adjustSame(tagged);
             segmentor->y_dict_->adjustSame(tagged);
-            
+
             if (segmentor->user_dict_) {
                 segmentor->user_dict_->adjust(tagged);
             }
@@ -623,13 +623,14 @@ NAN_METHOD(Segmentor::predict) {
             if (segmentor->useFilter_) {
                 segmentor->filter_->adjust(tagged);
             }
-            
+
             if (containtsT && !segmentor->useT2S_) {
                 segmentor->preprocesser_->S2T(tagged, tRaw);
             }
-            
+
             if (codetype == 0) {
-                std::cout << tagged;
+                ost << tagged;
+                result = ost.str();
             } else {
                 ost << tagged;
                 std::string str = ost.str();
