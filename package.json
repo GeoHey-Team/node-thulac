@@ -1,6 +1,6 @@
 {
   "name": "node-thulac",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "node binding for thulac",
   "main": "index.js",
   "scripts": {
