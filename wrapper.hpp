@@ -1,5 +1,5 @@
-#ifndef __geotag__wrapper__hh__
-#define __geotag__wrapper__hh__
+#ifndef __wrapper__hh__
+#define __wrapper__hh__
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -86,6 +86,7 @@ private:
     bool seg_only_;
     bool useFilter_;
     bool use_second_;
+    std::string userword_;
 };
 
 
@@ -306,7 +307,7 @@ NAN_METHOD(Segmentor::load_model) {
 
     // this parameter specifies to segment text without Part-of-Speech
     bool segment_text_without_part_of_speech = false;
-    v8::Local<v8::String> seg_only_param = Nan::New("seg_only").ToLocalChecked();
+    v8::Local<v8::String> seg_only_param = Nan::New("segOnly").ToLocalChecked();
     if (options->Has(seg_only_param)) {
         v8::Local<v8::Value> param_val = options->Get(seg_only_param);
         if (!param_val->IsBoolean()) {
@@ -350,7 +351,7 @@ NAN_METHOD(Segmentor::load_model) {
 
     // this parameter specifies dir is the directory that containts all the model file. Default is \"models/\"
     std::string model_dir = "";
-    v8::Local<v8::String> model_dir_param = Nan::New("model_dir").ToLocalChecked();
+    v8::Local<v8::String> model_dir_param = Nan::New("modelDir").ToLocalChecked();
     if (options->Has(model_dir_param)) {
         v8::Local<v8::Value> param_val = options->Get(model_dir_param);
         model_dir = *v8::String::Utf8Value(param_val);
@@ -369,12 +370,14 @@ NAN_METHOD(Segmentor::load_model) {
     }
     */
     // summary
+    /*
     std::cout << "t2s: " << traditional_chinese_to_simplified_chinese << std::endl;
-    std::cout << "seg_only: " << segment_text_without_part_of_speech << std::endl;
+    std::cout << "segOnly: " << segment_text_without_part_of_speech << std::endl;
     std::cout << "filter: " << usefilter << std::endl;
     std::cout << "delimeter: " << delimeter << std::endl;
-    std::cout << "user word: " << userword << std::endl;
-    std::cout << "model dir: " << model_dir << std::endl;
+    std::cout << "userword: " << userword << std::endl;
+    std::cout << "modelDir: " << model_dir << std::endl;
+    */
     //std::cout << "input: " << input_file << std::endl << std::endl;
 
     Segmentor* segmentor = Nan::ObjectWrap::Unwrap<Segmentor>(info.Holder());
@@ -386,10 +389,11 @@ NAN_METHOD(Segmentor::load_model) {
     segmentor->seg_only_ = segment_text_without_part_of_speech;
     segmentor->useFilter_ = usefilter;
     segmentor->use_second_ = false;
+    segmentor->userword_ = userword;
 
     std::string prefix = model_dir;
 
-    std::cout << "setting up cws decoder ...\n";
+    // std::cout << "setting up cws decoder ...\n";
     segmentor->cws_decoder_ = new TaggingDecoder();
     segmentor->cws_model_ = new permm::Model((prefix + "cws_model.bin").c_str());
     segmentor->cws_dat_ = new DAT((prefix + "cws_dat.bin").c_str());
@@ -405,7 +409,7 @@ NAN_METHOD(Segmentor::load_model) {
         segmentor->cws_decoder_->threshold = 15000;
     }
 
-    std::cout << "setting up tagging decoder ...\n";
+    // std::cout << "setting up tagging decoder ...\n";
     if (!segmentor->seg_only_) {
         segmentor->tagging_decoder_ = new TaggingDecoder();
         segmentor->tagging_decoder_->separator = segmentor->separator_;
@@ -425,7 +429,7 @@ NAN_METHOD(Segmentor::load_model) {
         segmentor->tagging_decoder_->set_label_trans();
     }
 
-    std::cout << "setting up dictionaries\n";
+    // std::cout << "setting up dictionaries\n";
     segmentor->lf_ = new thulac::hypergraph::LatticeFeature();
     segmentor->sogout_ = new DAT((prefix + "sgT.dat").c_str());
     segmentor->lf_->node_features.push_back(new thulac::hypergraph::SogouTFeature(segmentor->sogout_));
@@ -441,7 +445,7 @@ NAN_METHOD(Segmentor::load_model) {
 
     segmentor->decoder_.features.push_back(segmentor->lf_);
 
-    std::cout << "setup preprocesser ...\n";
+    // std::cout << "setup preprocesser ...\n";
     segmentor->preprocesser_ = new Preprocesser();
     segmentor->preprocesser_->setT2SMap((prefix + "t2s.dat").c_str());
 
@@ -470,7 +474,7 @@ NAN_METHOD(Segmentor::load_model) {
         segmentor->filter_ = new Filter((prefix + "xu.dat").c_str(), (prefix + "time.dat").c_str());
     }
 
-    std::cout << "Done loading\n";
+    // std::cout << "Done loading\n";
 
     info.GetReturnValue().Set(Nan::New(true));
 }
