@@ -41,7 +41,7 @@ loadModel 函数接受一个json对象，可以指定以下选项：
 
 *userword*           string类型 设置用户词典，用户词典中的词会被打上uw标签。词典中每一个词一行，UTF8编码
 
-*model_di*           string类型 设置模型文件所在文件夹
+*model_dir*           string类型 设置模型文件所在文件夹
 
 predict 函数接受一个字符串，返回分词后的字符串。
 

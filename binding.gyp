@@ -1,5 +1,5 @@
 {
-    "includes": [
+    'includes': [
         './common.gypi',
     ],
     'targets': [
