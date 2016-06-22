@@ -28,6 +28,12 @@
 #include "bigram_model.h"
 using namespace thulac;
 
+bool is_file_exist(const char *fileName)
+{
+    std::ifstream infile(fileName);
+    return infile.good();
+}
+
 class Segmentor: public Nan::ObjectWrap {
 public:
     static Nan::Persistent<v8::FunctionTemplate> constructor;
@@ -351,34 +357,15 @@ NAN_METHOD(Segmentor::load_model) {
 
     // this parameter specifies dir is the directory that containts all the model file. Default is \"models/\"
     std::string model_dir = "";
+    bool lite_model = true;
     v8::Local<v8::String> model_dir_param = Nan::New("modelDir").ToLocalChecked();
     if (options->Has(model_dir_param)) {
         v8::Local<v8::Value> param_val = options->Get(model_dir_param);
         model_dir = *v8::String::Utf8Value(param_val);
+        lite_model = false;
     } else {
-        return;
+        model_dir = "./models/";
     }
-
-    /*
-    std::string input_file = "";
-    v8::Local<v8::String> input_param = Nan::New("input").ToLocalChecked();
-    if (options->Has(input_param)) {
-        v8::Local<v8::Value> param_val = options->Get(input_param);
-        input_file = *v8::String::Utf8Value(param_val);
-    } else {
-        return;
-    }
-    */
-    // summary
-    /*
-    std::cout << "t2s: " << traditional_chinese_to_simplified_chinese << std::endl;
-    std::cout << "segOnly: " << segment_text_without_part_of_speech << std::endl;
-    std::cout << "filter: " << usefilter << std::endl;
-    std::cout << "delimeter: " << delimeter << std::endl;
-    std::cout << "userword: " << userword << std::endl;
-    std::cout << "modelDir: " << model_dir << std::endl;
-    */
-    //std::cout << "input: " << input_file << std::endl << std::endl;
 
     Segmentor* segmentor = Nan::ObjectWrap::Unwrap<Segmentor>(info.Holder());
 
@@ -430,16 +417,20 @@ NAN_METHOD(Segmentor::load_model) {
     }
 
     // std::cout << "setting up dictionaries\n";
-    segmentor->lf_ = new thulac::hypergraph::LatticeFeature();
-    segmentor->sogout_ = new DAT((prefix + "sgT.dat").c_str());
-    segmentor->lf_->node_features.push_back(new thulac::hypergraph::SogouTFeature(segmentor->sogout_));
 
-    std::vector<std::string> n_gram_model;
-    std::vector<std::string> dictionaries;
-    dictionaries.push_back(prefix + "sgW.dat");
-    for(size_t i = 0; i < dictionaries.size(); ++i) {
-        segmentor->lf_->node_features.push_back(new thulac::hypergraph::DictNodeFeature(new DAT(dictionaries[i].c_str())));
+    segmentor->lf_ = new thulac::hypergraph::LatticeFeature();
+    if (is_file_exist((prefix + "sgT.dat").c_str()) && is_file_exist((prefix + "sgW.dat").c_str()) ) {
+        segmentor->sogout_ = new DAT((prefix + "sgT.dat").c_str());
+        segmentor->lf_->node_features.push_back(new thulac::hypergraph::SogouTFeature(segmentor->sogout_));
+
+        std::vector<std::string> n_gram_model;
+        std::vector<std::string> dictionaries;
+        dictionaries.push_back(prefix + "sgW.dat");
+        for(size_t i = 0; i < dictionaries.size(); ++i) {
+            segmentor->lf_->node_features.push_back(new thulac::hypergraph::DictNodeFeature(new DAT(dictionaries[i].c_str())));
+        }
     }
+
     segmentor->lf_->filename= prefix + "model_w";
     segmentor->lf_->load();
 
@@ -451,13 +442,31 @@ NAN_METHOD(Segmentor::load_model) {
 
     segmentor->ns_dict_ = new Postprocesser((prefix + "ns.dat").c_str(), "ns", false);
     segmentor->idiom_dict_ = new Postprocesser((prefix + "idiom.dat").c_str(), "i", false);
-    segmentor->nz_dict_ = new Postprocesser((prefix + "nz.dat").c_str(), "nz", false);
-    segmentor->ni_dict_ = new Postprocesser((prefix + "ni.dat").c_str(), "ni", false);
-    segmentor->noun_dict_ = new Postprocesser((prefix + "noun.dat").c_str(), "n", false);
-    segmentor->adj_dict_ = new Postprocesser((prefix + "adj.dat").c_str(), "a", false);
-    segmentor->verb_dict_ = new Postprocesser((prefix + "verb.dat").c_str(), "v", false);
-    segmentor->vm_dict_ = new Postprocesser((prefix + "vm.dat").c_str(), "vm", false);
-    segmentor->y_dict_ = new Postprocesser((prefix + "y.dat").c_str(), "y", false);
+    if (is_file_exist((prefix + "nz.dat").c_str())) {
+        segmentor->nz_dict_ = new Postprocesser((prefix + "nz.dat").c_str(), "nz", false);
+    }
+    if (is_file_exist((prefix + "ni.dat").c_str())) {
+        segmentor->ni_dict_ = new Postprocesser((prefix + "ni.dat").c_str(), "ni", false);
+    }
+    if (is_file_exist((prefix + "noun.dat").c_str())) {
+        segmentor->noun_dict_ = new Postprocesser((prefix + "noun.dat").c_str(), "n", false);
+    }
+
+    if (is_file_exist((prefix + "adj.dat").c_str())) {
+        segmentor->adj_dict_ = new Postprocesser((prefix + "adj.dat").c_str(), "a", false);
+    }
+
+    if (is_file_exist((prefix + "verb.dat").c_str())) {
+        segmentor->verb_dict_ = new Postprocesser((prefix + "verb.dat").c_str(), "v", false);
+    }
+
+    if (is_file_exist((prefix + "vm.dat").c_str())) {
+        segmentor->vm_dict_ = new Postprocesser((prefix + "vm.dat").c_str(), "vm", false);
+    }
+
+    if (is_file_exist((prefix + "y.dat").c_str())) {
+        segmentor->y_dict_ = new Postprocesser((prefix + "y.dat").c_str(), "y", false);
+    }
 
     if (userword != ""){
         segmentor->user_dict_ = new Postprocesser(userword.c_str(), "uw", true);
@@ -553,8 +562,12 @@ NAN_METHOD(Segmentor::predict) {
             segmentor->cws_decoder_->get_seg_result(segged);
             segmentor->ns_dict_->adjust(segged);
             segmentor->idiom_dict_->adjust(segged);
-            segmentor->nz_dict_->adjust(segged);
-            segmentor->noun_dict_->adjust(segged);
+            if (segmentor->nz_dict_) {
+                segmentor->nz_dict_->adjust(segged);
+            }
+            if (segmentor->noun_dict_) {
+                segmentor->noun_dict_->adjust(segged);
+            }
 
             if (segmentor->user_dict_){
                 segmentor->user_dict_->adjust(segged);
@@ -609,13 +622,27 @@ NAN_METHOD(Segmentor::predict) {
 
             segmentor->ns_dict_->adjust(tagged);
             segmentor->idiom_dict_->adjust(tagged);
-            segmentor->nz_dict_->adjust(tagged);
-            segmentor->ni_dict_->adjust(tagged);
-            segmentor->noun_dict_->adjust(tagged);
-            segmentor->adj_dict_->adjust(tagged);
-            segmentor->verb_dict_->adjust(tagged);
-            segmentor->vm_dict_->adjustSame(tagged);
-            segmentor->y_dict_->adjustSame(tagged);
+            if (segmentor->nz_dict_) {
+                segmentor->nz_dict_->adjust(segged);
+            }
+            if (segmentor->ni_dict_) {
+                segmentor->ni_dict_->adjust(tagged);
+            }
+            if (segmentor->noun_dict_) {
+                segmentor->noun_dict_->adjust(segged);
+            }
+            if (segmentor->adj_dict_) {
+                segmentor->adj_dict_->adjust(tagged);
+            }
+            if (segmentor->verb_dict_) {
+                segmentor->verb_dict_->adjust(tagged);
+            }
+            if (segmentor->vm_dict_) {
+                segmentor->vm_dict_->adjustSame(tagged);
+            }
+            if (segmentor->y_dict_) {
+                segmentor->y_dict_->adjustSame(tagged);
+            }
 
             if (segmentor->user_dict_) {
                 segmentor->user_dict_->adjust(tagged);
