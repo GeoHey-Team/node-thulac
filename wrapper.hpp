@@ -34,6 +34,12 @@ bool is_file_exist(const char *fileName)
     return infile.good();
 }
 
+std::string default_model;
+static NAN_METHOD(register_model) {
+    default_model = *v8::String::Utf8Value(info[0]->ToString());
+    return;
+}
+
 class Segmentor: public Nan::ObjectWrap {
 public:
     static Nan::Persistent<v8::FunctionTemplate> constructor;
@@ -44,7 +50,6 @@ public:
     static NAN_METHOD(predict);
 
     Segmentor();
-
 private:
     ~Segmentor();
 
@@ -356,15 +361,11 @@ NAN_METHOD(Segmentor::load_model) {
     }
 
     // this parameter specifies dir is the directory that containts all the model file. Default is \"models/\"
-    std::string model_dir = "";
-    bool lite_model = true;
+    std::string model_dir = default_model;
     v8::Local<v8::String> model_dir_param = Nan::New("modelDir").ToLocalChecked();
     if (options->Has(model_dir_param)) {
         v8::Local<v8::Value> param_val = options->Get(model_dir_param);
         model_dir = *v8::String::Utf8Value(param_val);
-        lite_model = false;
-    } else {
-        model_dir = "./models/";
     }
 
     Segmentor* segmentor = Nan::ObjectWrap::Unwrap<Segmentor>(info.Holder());

@@ -4,11 +4,11 @@ segmentor = new thulac.Segmentor();
 
 console.log('loading model ...');
 segmentor.loadModel({
-    t2s: false,
-    segOnly: true,
-    filter: false,
-    delimeter: '_',
-    modelDir: './models/'
+//    t2s: false,
+//    segOnly: true,
+//    filter: false,
+//    delimeter: '_',
+//    modelDir: './models/'
 });
 
 console.log('do some predict ...');
