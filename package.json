@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "node test.js",
-    "install": "node-gyp rebuild && unzip Models_v1_v2.zip"
+    "install": "node-gyp rebuild && wget http://o99i8klkb.bkt.clouddn.com/Models_v1_v2.zip && unzip Models_v1_v2.zip"
   },
   "repository": {
     "type": "git",
